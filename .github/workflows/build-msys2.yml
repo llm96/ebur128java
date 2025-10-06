@@ -1,0 +1,65 @@
+name: Build (MSYS2)
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        required: false
+        type: string
+        description: 'Runner to use'
+        default: 'windows-latest'
+      msystem:
+        required: true
+        type: string
+        description: 'MSYS2 environment'
+      arch:
+        required: true
+        type: string
+        description: 'Architecture'
+      toolchain-prefix:
+        required: true
+        type: string
+        description: 'Toolchain prefix'
+      mingw-packages-url:
+        required: true
+        type: string
+        description: 'MINGW-packages repository URL'
+      mingw-packages-commit:
+        required: true
+        type: string
+        description: 'MINGW-packages commit hash'
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ inputs.msystem }}
+          update: true
+          install: base-devel git mingw-w64-${{ inputs.toolchain-prefix }}-ninja mingw-w64-${{ inputs.toolchain-prefix }}-toolchain mingw-w64-${{ inputs.toolchain-prefix }}-cmake
+      
+      - name: Clone MINGW-packages
+        shell: msys2 {0}
+        run: |
+          git clone ${{ inputs.mingw-packages-url }}
+          cd MINGW-packages
+          git checkout ${{ inputs.mingw-packages-commit }}
+      
+      - name: Build libebur128
+        shell: msys2 {0}
+        run: |
+          cd MINGW-packages/mingw-w64-libebur128/
+          export CMAKE_POLICY_VERSION_MINIMUM=3.5
+          makepkg-mingw --noconfirm --rmdeps --syncdeps
+          cp src/build-${{ inputs.msystem }}/libebur128.dll ebur128.dll
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libebur128-windows-${{ inputs.arch }}
+          path: MINGW-packages/mingw-w64-libebur128/ebur128.dll

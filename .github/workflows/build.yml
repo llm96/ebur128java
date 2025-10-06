@@ -8,98 +8,39 @@ on:
   workflow_dispatch:
 
 env:
+  LIBEBUR128_URL: https://github.com/jiixyj/libebur128.git
   LIBEBUR128_VERSION: v1.2.6
+  MINGW_PACKAGES_URL: https://github.com/msys2/MINGW-packages
+  MINGW_PACKAGES_COMMIT: b8a461af4018a2677b54504407181aa783c2f125
 
 jobs:
   build-windows-x64:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Clone libebur128
-        run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
-      
-      - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v2
-      
-      - name: Build libebur128 x64
-        run: |
-          cd libebur128
-          mkdir build
-          cd build
-          cmake .. -A x64 -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=install
-          cmake --build . --config Release
-          cmake --install . --config Release
-      
-      - name: Upload Windows x64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libebur128-windows-x64
-          path: libebur128/build/install/bin/ebur128.dll
+    uses: ./.github/workflows/build-msys2.yml
+    with:
+      msystem: CLANG64
+      arch: x64
+      toolchain-prefix: clang-x86_64
+      mingw-packages-url: https://github.com/msys2/MINGW-packages
+      mingw-packages-commit: b8a461af4018a2677b54504407181aa783c2f125
 
   build-windows-x86:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Clone libebur128
-        run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
-      
-      - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v2
-      
-      - name: Build libebur128 x86
-        run: |
-          cd libebur128
-          mkdir build
-          cd build
-          cmake .. -A Win32 -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=install
-          cmake --build . --config Release
-          cmake --install . --config Release
-      
-      - name: Upload Windows x86 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libebur128-windows-x86
-          path: libebur128/build/install/bin/ebur128.dll
+    uses: ./.github/workflows/build-msys2.yml
+    with:
+      msystem: MINGW32
+      arch: x86
+      toolchain-prefix: i686
+      mingw-packages-url: https://github.com/msys2/MINGW-packages
+      mingw-packages-commit: b8a461af4018a2677b54504407181aa783c2f125
 
   build-windows-arm64:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Clone libebur128
-        run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
-      
-      - name: Setup MSVC
-        uses: microsoft/setup-msbuild@v2
-      
-      - name: Fix MSVC compatibility for ARM64
-        run: |
-          cd libebur128
-          # Replace #warning with #pragma message for MSVC compatibility
-          (Get-Content ebur128/ebur128.c) -replace '#warning', '#pragma message' | Set-Content ebur128/ebur128.c
-      
-      - name: Build libebur128 ARM64
-        run: |
-          cd libebur128
-          mkdir build
-          cd build
-          cmake .. -A ARM64 -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=install
-          cmake --build . --config Release
-          cmake --install . --config Release
-      
-      - name: Upload Windows ARM64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libebur128-windows-arm64
-          path: libebur128/build/install/bin/ebur128.dll
+    uses: ./.github/workflows/build-msys2.yml
+    with:
+      msystem: CLANGARM64
+      arch: arm64
+      toolchain-prefix: clang-aarch64
+      mingw-packages-url: https://github.com/msys2/MINGW-packages
+      mingw-packages-commit: b8a461af4018a2677b54504407181aa783c2f125
+      runs-on: windows-11-arm
 
   build-macos-intel:
     runs-on: macos-13
@@ -109,7 +50,7 @@ jobs:
       
       - name: Clone libebur128
         run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
+          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} ${{ env.LIBEBUR128_URL }}
       
       - name: Build libebur128 for x86_64
         run: |
@@ -140,7 +81,7 @@ jobs:
       
       - name: Clone libebur128
         run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
+          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} ${{ env.LIBEBUR128_URL }}
       
       - name: Build libebur128 for arm64
         run: |
@@ -176,7 +117,7 @@ jobs:
       
       - name: Clone libebur128
         run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
+          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} ${{ env.LIBEBUR128_URL }}
       
       - name: Build libebur128
         run: |
@@ -212,7 +153,7 @@ jobs:
       
       - name: Clone libebur128
         run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
+          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} ${{ env.LIBEBUR128_URL }}
       
       - name: Build libebur128 for x86
         run: |
@@ -249,7 +190,7 @@ jobs:
       
       - name: Clone libebur128
         run: |
-          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} https://github.com/jiixyj/libebur128.git
+          git clone --depth 1 --branch ${{ env.LIBEBUR128_VERSION }} ${{ env.LIBEBUR128_URL }}
       
       - name: Create toolchain file
         run: |
